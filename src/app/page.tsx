@@ -1,389 +1,172 @@
 "use client";
 
-import type React from "react";
-import { useRef, useState } from "react";
+import { useState, useRef } from "react";
+import { Upload, RefreshCw, Zap, Shield, Loader2 } from "lucide-react";
 
-type ParsedRizzIQResult = {
-  analysis: string;
-  maverick: string;
-  stoic: string;
-  mirror: string;
-};
+export default function Home() {
+  const [image, setImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-function parseRizzIQResult(text: string | null | undefined): ParsedRizzIQResult {
-  if (text == null || typeof text !== "string") {
-    return { analysis: "", maverick: "", stoic: "", mirror: "" };
-  }
-
-  const cleaned = text.replace(/\r\n/g, "\n").trim();
-
-  const analysisLabel = /Analysis[:\-]?\s*/i;
-  const optionsLabel = /The Options?[:\-]?\s*/i;
-
-  let analysis = "";
-  let optionsBlock = "";
-
-  const analysisMatch = cleaned.match(analysisLabel);
-  const optionsMatch = cleaned.match(optionsLabel);
-
-  if (
-    analysisMatch &&
-    typeof analysisMatch.index === "number" &&
-    optionsMatch &&
-    typeof optionsMatch.index === "number"
-  ) {
-    const analysisStart = analysisMatch.index + analysisMatch[0].length;
-    const optionsStart = optionsMatch.index;
-    analysis = cleaned.slice(analysisStart, optionsStart).trim();
-    optionsBlock = cleaned.slice(optionsStart + optionsMatch[0].length).trim();
-  } else if (analysisMatch && typeof analysisMatch.index === "number") {
-    const analysisStart = analysisMatch.index + analysisMatch[0].length;
-    analysis = cleaned.slice(analysisStart).trim();
-  } else {
-    analysis = cleaned;
-  }
-
-  const source = optionsBlock || cleaned;
-
-  const extractOption = (label: "Maverick" | "Stoic" | "Mirror", textSource: string) => {
-    const pattern = new RegExp(
-      `${label}[:\\-]?\\s*([\\s\\S]*?)(?=(Maverick|Stoic|Mirror)[:\\-]?|$)`,
-      "i",
-    );
-    const match = textSource.match(pattern);
-    if (!match || !match[1]) return "";
-    return match[1].trim();
-  };
-
-  const maverick = extractOption("Maverick", source);
-  const stoic = extractOption("Stoic", source);
-  const mirror = extractOption("Mirror", source);
-
-  return { analysis, maverick, stoic, mirror };
-}
-
-export default function HomePage() {
-  const [image, setImage] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
-  const [result, setResult] = useState<string>("");
-  const [error, setError] = useState<string>("");
-  const [selectedTone, setSelectedTone] = useState<"maverick" | "stoic" | "mirror" | null>(
-    null,
-  );
-
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  const handleUploadClick = () => {
-    setError("");
-    fileInputRef.current?.click();
-  };
-
-  const toBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
+  // 上传逻辑
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
       const reader = new FileReader();
-      reader.onload = () => {
-        const value = typeof reader.result === "string" ? reader.result : "";
-        resolve(value);
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        // 注意：这里我们设置图片用于预览，但一旦开始分析，我们将隐藏它
+        setImage(base64);
+        analyzeImage(base64);
       };
-      reader.onerror = () => reject(new Error("Failed to read file"));
       reader.readAsDataURL(file);
-    });
+    }
   };
 
-  const analyzeImage = async (base64: string) => {
+  // API 调用
+  const analyzeImage = async (base64Image: string) => {
+    setLoading(true);
+    setResult(null); // 清空旧结果
     try {
-      setLoading(true);
-      setResult("");
-      setError("");
-      setSelectedTone(null);
-
-      const stripped =
-        typeof base64 === "string" && base64.startsWith("data:") && base64.includes(",")
-          ? base64.split(",")[1] ?? ""
-          : typeof base64 === "string"
-            ? base64
-            : "";
-
-      const res = await fetch("/api/analyze", {
+      const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: stripped }),
+        body: JSON.stringify({ image: base64Image }),
       });
+      const data = await response.json();
+      
+      if (data.error) throw new Error(data.error);
+      
+      // 直接使用后端返回的 JSON，无需解析
+      setResult(data); 
+      
+      // 关键修改：分析完成后，清除图片状态，强制隐藏大图
+      setImage(null); 
 
-      let data: unknown;
-      try {
-        data = await res.json();
-      } catch {
-        setError("Invalid response from server.");
-        return;
-      }
-
-      if (!res.ok) {
-        const errMsg =
-          data != null && typeof data === "object" && "error" in data && typeof (data as { error: unknown }).error === "string"
-            ? (data as { error: string }).error
-            : `Request failed with status ${res.status}`;
-        setError(errMsg);
-        return;
-      }
-
-      const textResult =
-        data != null && typeof data === "object" && "result" in data && typeof (data as { result: unknown }).result === "string"
-          ? (data as { result: string }).result
-          : typeof data === "string"
-            ? data
-            : JSON.stringify(data ?? {}, null, 2);
-
-      setResult(textResult);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Something went wrong while analyzing the image.";
-      setError(message);
+    } catch (error) {
+      alert("Error: Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const target = event?.target;
-    if (!target) return;
-    const file = target.files?.[0];
-    if (!file) return;
-
-    try {
-      const base64 = await toBase64(file);
-      setImage(base64);
-      await analyzeImage(base64);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to read the selected image. Please try again.";
-      setError(message);
-    } finally {
-      if (target) target.value = "";
-    }
+  const reset = () => {
+    setImage(null);
+    setResult(null);
+    setLoading(false);
   };
 
-  const parsed = parseRizzIQResult(result);
-  const hasAnalysis = Boolean(parsed.analysis);
-  const hasOptions = Boolean(parsed.maverick || parsed.stoic || parsed.mirror);
-
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#050505] px-4 py-8 text-slate-100">
-      <div className="relative w-full max-w-md">
-        {/* Ambient glow */}
-        <div className="pointer-events-none absolute inset-x-0 -top-16 -z-10 flex justify-center">
-          <div className="h-40 w-72 bg-gradient-to-tr from-purple-500/40 via-sky-500/30 to-emerald-400/40 blur-3xl" />
-        </div>
-
-        <div className="relative overflow-hidden rounded-3xl border border-purple-500/25 bg-white/5 shadow-[0_0_45px_rgba(168,85,247,0.5)] backdrop-blur-2xl">
-          <div className="pointer-events-none absolute inset-0 opacity-70">
-            <div className="absolute -left-32 top-10 h-48 w-48 rounded-full bg-purple-500/20 blur-3xl" />
-            <div className="absolute -right-40 bottom-0 h-52 w-52 rounded-full bg-sky-500/20 blur-3xl" />
-          </div>
-
-          <div className="relative space-y-6 p-6">
-            {/* Logo */}
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-tr from-purple-500 via-sky-500 to-emerald-400 text-xs font-semibold uppercase tracking-[0.25em] text-slate-950 shadow-[0_0_25px_rgba(129,140,248,0.9)]">
-                RQ
-              </div>
-              <div>
-                <p className="text-[0.65rem] uppercase tracking-[0.25em] text-slate-400">
-                  social game assistant
-                </p>
-                <h1 className="text-3xl font-semibold leading-tight">
-                  <span className="bg-gradient-to-r from-purple-400 via-sky-400 to-purple-300 bg-clip-text text-transparent drop-shadow-[0_0_18px_rgba(94,234,212,0.8)]">
-                    RizzIQ
-                  </span>
-                </h1>
-              </div>
-            </div>
-
-            <p className="text-sm text-slate-300">
-              Upload a screenshot of your chat and let the{" "}
-              <span className="text-sky-400">RizzIQ brain</span> decode the vibe and suggest your
-              next move.
-            </p>
-
-            {/* Scan button & file input */}
-            <div className="space-y-4">
-              <button
-                type="button"
-                onClick={handleUploadClick}
-                disabled={loading}
-                className="group flex w-full items-center justify-between gap-3 rounded-2xl bg-gradient-to-r from-purple-500 via-sky-500 to-purple-500 px-5 py-4 text-left text-sm font-semibold uppercase tracking-[0.25em] text-slate-50 shadow-[0_0_30px_rgba(129,140,248,0.8)] transition hover:brightness-110 hover:shadow-[0_0_45px_rgba(129,140,248,1)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <span>{loading ? "SCANNING" : "SCAN CHAT"}</span>
-                <span className="flex items-center gap-1 text-[0.65rem] font-normal tracking-[0.2em] text-slate-100/80">
-                  <span className="h-1 w-1 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(52,211,153,0.9)] group-disabled:animate-pulse" />
-                  LIVE
-                </span>
-              </button>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-
-              <p className="text-[0.72rem] text-slate-400">
-                Best results with full conversation screenshots. We never store your images.
-              </p>
-            </div>
-
-            {/* Image preview */}
-            {image && (
-              <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/40">
-                <div className="flex items-center justify-between px-3 pt-2 text-[0.7rem] text-slate-400">
-                  <span>Preview</span>
-                  {loading && (
-                    <span className="flex items-center gap-1 text-emerald-300">
-                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" />
-                      scanning
-                    </span>
-                  )}
-                </div>
-                <div className="mt-2 max-h-52 overflow-hidden border-t border-white/5 bg-gradient-to-b from-white/5 to-transparent">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={image}
-                    alt="Uploaded chat screenshot preview"
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Loading radar */}
-            {loading && (
-              <div className="flex flex-col items-center gap-3 pt-2">
-                <div className="relative h-24 w-24">
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-purple-500/40 via-sky-500/30 to-emerald-400/40 blur-xl opacity-80" />
-                  <div className="relative flex h-full w-full items-center justify-center rounded-full border border-sky-500/40 bg-black/60">
-                    <div className="h-12 w-12 animate-spin rounded-full border-2 border-sky-400/80 border-t-transparent" />
-                    <div className="absolute inset-3 rounded-full border border-dashed border-emerald-300/40 animate-[spin_4s_linear_infinite]" />
-                  </div>
-                </div>
-                <p className="text-xs uppercase tracking-[0.25em] text-slate-400">
-                  scanning dialogue
-                </p>
-              </div>
-            )}
-
-            {/* Error */}
-            {error && <p className="text-sm text-rose-400">{error}</p>}
-
-            {/* Analysis & options */}
-            {!loading && result && (
-              <div className="space-y-5 pt-2">
-                {hasAnalysis && (
-                  <section className="space-y-2">
-                    <div className="flex items-center gap-2 text-[0.7rem] uppercase tracking-[0.22em] text-slate-400">
-                      <span className="h-1 w-5 rounded-full bg-purple-400/70" />
-                      <span>AI analysis</span>
-                    </div>
-                    <div className="rounded-2xl border border-purple-500/40 bg-white/5 p-4 text-sm leading-relaxed text-slate-100 shadow-[0_0_32px_rgba(168,85,247,0.5)] backdrop-blur-xl">
-                      <p className="whitespace-pre-line">{parsed.analysis}</p>
-                    </div>
-                  </section>
-                )}
-
-                {hasOptions && (
-                  <section className="space-y-3">
-                    <div className="flex items-center justify-between text-[0.7rem] uppercase tracking-[0.22em] text-slate-400">
-                      <span>the options</span>
-                      <span className="text-slate-500">tap a playstyle</span>
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      {parsed.maverick && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedTone("maverick")}
-                          className={`flex flex-col items-start gap-1 rounded-2xl border bg-purple-500/5 p-3 text-left text-xs text-slate-100 shadow-[0_0_20px_rgba(168,85,247,0.4)] transition hover:border-purple-300 hover:bg-purple-500/10 hover:shadow-[0_0_30px_rgba(168,85,247,0.7)] ${
-                            selectedTone === "maverick"
-                              ? "border-purple-300 ring-2 ring-purple-400/80"
-                              : "border-purple-500/60"
-                          }`}
-                        >
-                          <span className="flex items-center gap-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-purple-200">
-                            <span className="h-1.5 w-1.5 rounded-full bg-purple-300 shadow-[0_0_10px_rgba(168,85,247,1)]" />
-                            Maverick
-                          </span>
-                          <p className="max-h-32 overflow-y-auto pr-1 text-[0.7rem] leading-snug text-slate-100/90">
-                            {parsed.maverick}
-                          </p>
-                        </button>
-                      )}
-
-                      {parsed.stoic && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedTone("stoic")}
-                          className={`flex flex-col items-start gap-1 rounded-2xl border bg-sky-500/5 p-3 text-left text-xs text-slate-100 shadow-[0_0_20px_rgba(56,189,248,0.4)] transition hover:border-sky-300 hover:bg-sky-500/10 hover:shadow-[0_0_30px_rgba(56,189,248,0.7)] ${
-                            selectedTone === "stoic"
-                              ? "border-sky-300 ring-2 ring-sky-400/80"
-                              : "border-sky-500/60"
-                          }`}
-                        >
-                          <span className="flex items-center gap-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-sky-200">
-                            <span className="h-1.5 w-1.5 rounded-full bg-sky-300 shadow-[0_0_10px_rgba(56,189,248,1)]" />
-                            Stoic
-                          </span>
-                          <p className="max-h-32 overflow-y-auto pr-1 text-[0.7rem] leading-snug text-slate-100/90">
-                            {parsed.stoic}
-                          </p>
-                        </button>
-                      )}
-
-                      {parsed.mirror && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedTone("mirror")}
-                          className={`flex flex-col items-start gap-1 rounded-2xl border bg-emerald-500/5 p-3 text-left text-xs text-slate-100 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition hover:border-emerald-300 hover:bg-emerald-500/10 hover:shadow-[0_0_30px_rgba(16,185,129,0.7)] ${
-                            selectedTone === "mirror"
-                              ? "border-emerald-300 ring-2 ring-emerald-400/80"
-                              : "border-emerald-500/60"
-                          }`}
-                        >
-                          <span className="flex items-center gap-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-emerald-200">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(16,185,129,1)]" />
-                            Mirror
-                          </span>
-                          <p className="max-h-32 overflow-y-auto pr-1 text-[0.7rem] leading-snug text-slate-100/90">
-                            {parsed.mirror}
-                          </p>
-                        </button>
-                      )}
-                    </div>
-                  </section>
-                )}
-
-                {/* Fallback: raw text if parsing fails */}
-                {!hasAnalysis && !hasOptions && result && (
-                  <section className="space-y-2">
-                    <div className="flex items-center gap-2 text-[0.7rem] uppercase tracking-[0.22em] text-slate-400">
-                      <span className="h-1 w-5 rounded-full bg-slate-400/70" />
-                      <span>response</span>
-                    </div>
-                    <div className="rounded-2xl border border-slate-700/80 bg-black/40 p-4 text-xs leading-relaxed text-slate-100/90">
-                      <pre className="whitespace-pre-wrap break-words">{result}</pre>
-                    </div>
-                  </section>
-                )}
-              </div>
-            )}
-
-            {/* Empty state helper */}
-            {!loading && !result && !error && (
-              <p className="text-[0.75rem] text-slate-500">
-                Tap <span className="text-sky-300">SCAN CHAT</span> to analyze your latest
-                conversation.
-              </p>
-            )}
-          </div>
+    <main className="min-h-screen w-full bg-[#050505] text-white font-sans selection:bg-purple-500/30">
+      
+      {/* 顶部导航 */}
+      <div className="fixed top-0 left-0 right-0 p-4 bg-[#050505]/80 backdrop-blur-md z-50 border-b border-white/5 flex justify-between items-center">
+        <h1 className="text-xl font-bold tracking-tighter bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+          RizzIQ.ai
+        </h1>
+        <div className="flex items-center gap-1 px-2 py-1 bg-purple-900/30 border border-purple-500/30 rounded text-[10px] font-bold text-purple-300">
+          <Zap size={10} fill="currentColor" /> PRO
         </div>
       </div>
+
+      <div className="pt-20 px-4 pb-10 max-w-md mx-auto">
+        
+        {/* --- 状态 1: 待机 / 上传 --- */}
+        {!loading && !result && (
+          <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-8 animate-in fade-in duration-700">
+            {/* 雷达动画 */}
+            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              <div className="absolute inset-0 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
+              <div className="relative w-40 h-40 rounded-full border border-slate-700 bg-slate-900/50 flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 border-t-2 border-purple-500 rounded-full animate-spin duration-[3000ms]"></div>
+                <Upload className="w-10 h-10 text-slate-400" />
+              </div>
+            </div>
+
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold text-white">Upload Screenshot</h2>
+              <p className="text-sm text-slate-400">Let AI decode the subtext.</p>
+            </div>
+
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl font-bold text-lg tracking-wide shadow-[0_0_20px_rgba(124,58,237,0.3)] active:scale-95 transition-all"
+            >
+              SCAN CHAT
+            </button>
+          </div>
+        )}
+
+        {/* --- 状态 2: 分析中 --- */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-6">
+            <Loader2 className="w-16 h-16 text-purple-500 animate-spin" />
+            <div className="space-y-1 text-center">
+              <p className="text-lg font-bold text-white">ANALYZING...</p>
+              <p className="text-xs text-slate-500 font-mono">Detecting power dynamics</p>
+            </div>
+          </div>
+        )}
+
+        {/* --- 状态 3: 结果展示 (纯净模式) --- */}
+        {result && (
+          <div className="space-y-6 animate-in slide-in-from-bottom-10 duration-500">
+            
+            {/* 分析卡片 */}
+            <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-700 backdrop-blur-md">
+              <div className="flex items-center gap-2 mb-3 text-purple-400 uppercase text-xs font-bold tracking-widest">
+                <Shield size={14} /> Psychology Analysis
+              </div>
+              <p className="text-slate-200 text-sm leading-relaxed">
+                {result.analysis}
+              </p>
+            </div>
+
+            {/* 选项列表 */}
+            <div className="space-y-4">
+              {result.options && result.options.map((opt: any, i: number) => {
+                const styles = [
+                  { border: "border-purple-500/60", bg: "shadow-[0_0_30px_-10px_rgba(168,85,247,0.3)]" },
+                  { border: "border-blue-500/60", bg: "shadow-[0_0_30px_-10px_rgba(59,130,246,0.3)]" },
+                  { border: "border-emerald-500/60", bg: "shadow-[0_0_30px_-10px_rgba(16,185,129,0.3)]" }
+                ];
+                const style = styles[i % 3];
+
+                return (
+                  <div key={i} className={`group relative p-5 rounded-xl bg-black border ${style.border} ${style.bg}`}>
+                    <div className="absolute top-3 right-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      {opt.title}
+                    </div>
+                    <p className="text-white font-medium text-lg mt-2 pr-2">
+                      "{opt.content}"
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* 底部按钮 */}
+            <div className="pt-8 pb-4">
+              <button 
+                onClick={reset}
+                className="w-full py-3 bg-slate-800 hover:bg-slate-700 rounded-full text-sm font-semibold text-slate-300 transition-colors flex items-center justify-center gap-2"
+              >
+                <RefreshCw size={14} /> Scan Another
+              </button>
+            </div>
+          </div>
+        )}
+
+      </div>
+      
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        className="hidden" 
+        accept="image/*" 
+        onChange={handleImageUpload} 
+      />
     </main>
   );
 }
