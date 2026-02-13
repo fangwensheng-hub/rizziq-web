@@ -3,188 +3,275 @@
 import { useState, useRef } from "react";
 import { Upload, Zap, Loader2, RefreshCw, MessageSquare } from "lucide-react";
 
+type Option = {
+  title: string;
+  content: string;
+};
+
+type AnalysisResult = {
+  analysis: string;
+  options: Option[];
+};
+
 export default function Home() {
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // 1. 图片处理逻辑
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        analyzeImage(base64); // 上传即开始分析
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const value = reader.result;
+      if (typeof value === "string") {
+        analyzeImage(value);
+      } else {
+        setError("Unable to read image. Please try another file.");
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
-  // 2. 核心分析逻辑
   const analyzeImage = async (base64Image: string) => {
-    setLoading(true);
-    setResult(null);
     try {
+      setLoading(true);
+      setResult(null);
+      setError(null);
+
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image: base64Image }),
       });
+
       const data = await response.json();
-      if (data.error) throw new Error(data.error);
-      setResult(data);
-    } catch (error) {
-      alert("Something went wrong. Please try again.");
+
+      if (!response.ok) {
+        const message =
+          data && typeof data.error === "string"
+            ? data.error
+            : `Request failed with status ${response.status}`;
+        setError(message);
+        return;
+      }
+
+      if (!data || typeof data !== "object") {
+        setError("Invalid response from AI.");
+        return;
+      }
+
+      const analysis =
+        typeof (data as any).analysis === "string"
+          ? (data as any).analysis.trim()
+          : "";
+
+      const rawOptions = Array.isArray((data as any).options)
+        ? (data as any).options
+        : [];
+
+      const options: Option[] = rawOptions
+        .map((opt) => ({
+          title:
+            opt && typeof opt.title === "string" ? opt.title : "Option",
+          content:
+            opt && typeof opt.content === "string" ? opt.content : "",
+        }))
+        .filter((opt) => opt.content.length > 0);
+
+      setResult({ analysis, options });
+    } catch {
+      setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
-  const reset = () => {
+  const handleScanAnother = () => {
     setResult(null);
+    setError(null);
     setLoading(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
-  // --- 界面渲染 ---
+  const getOptionStyle = (title: string) => {
+    const lower = title.toLowerCase();
+    if (lower.includes("maverick")) {
+      return "border-purple-500/50 shadow-[0_0_30px_-10px_rgba(168,85,247,0.4)]";
+    }
+    if (lower.includes("stoic")) {
+      return "border-blue-500/50 shadow-[0_0_30px_-10px_rgba(59,130,246,0.4)]";
+    }
+    if (lower.includes("mirror")) {
+      return "border-emerald-500/50 shadow-[0_0_30px_-10px_rgba(16,185,129,0.4)]";
+    }
+    return "border-slate-600/60 shadow-[0_0_24px_-10px_rgba(148,163,184,0.3)]";
+  };
+
   return (
     <main className="relative min-h-screen w-full bg-[#050505] text-white font-sans overflow-hidden flex flex-col">
-      
-      {/* 背景光晕装饰 */}
-      <div className="absolute top-0 left-0 w-full h-1/2 bg-purple-900/20 blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-0 right-0 w-full h-1/3 bg-blue-900/10 blur-[100px] pointer-events-none"></div>
+      {/* ambient glows */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-purple-900/25 blur-[120px]" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-sky-900/20 blur-[110px]" />
 
-      {/* 顶部导航 (固定) */}
-      <nav className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-50">
-        <h1 className="text-xl font-bold tracking-tighter bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-          RizzIQ.ai
+      {/* top nav */}
+      <nav className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-white/5 bg-[#050505]/80 px-6 py-4 backdrop-blur-md">
+        <h1 className="text-xl font-bold tracking-tighter">
+          <span className="bg-gradient-to-r from-purple-400 via-sky-400 to-cyan-300 bg-clip-text text-transparent">
+            RizzIQ.ai
+          </span>
         </h1>
-        <div className="flex items-center gap-1 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-bold tracking-widest text-purple-300">
-          <Zap size={10} fill="currentColor" /> PRO
+        <div className="flex items-center gap-1 rounded-full border border-purple-500/40 bg-purple-900/30 px-3 py-1 text-[10px] font-bold tracking-[0.18em] text-purple-200 uppercase">
+          <Zap size={10} className="text-purple-300" />
+          <span>PRO</span>
         </div>
       </nav>
 
-      {/* --- 核心内容区 (垂直居中) --- */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 w-full max-w-md mx-auto z-10">
-        
-        {/* 状态 A: 待机 (Home) */}
+      {/* main content */}
+      <div className="z-10 mx-auto flex w-full max-w-md flex-1 flex-col px-6 pb-10 pt-24">
+        {error && (
+          <div className="mb-4 rounded-xl border border-rose-500/40 bg-rose-950/70 px-4 py-3 text-xs text-rose-100">
+            {error}
+          </div>
+        )}
+
+        {/* Idle / upload state */}
         {!loading && !result && (
-          <div className="w-full flex flex-col items-center space-y-10 animate-in fade-in duration-700">
-            
-            {/* 雷达扫描动画按钮 */}
-            <div 
+          <div className="flex min-h-[70vh] flex-col items-center justify-center space-y-10">
+            <div
               onClick={() => fileInputRef.current?.click()}
-              className="relative group cursor-pointer"
+              className="relative cursor-pointer"
             >
-              {/* 外圈光环动画 */}
-              <div className="absolute -inset-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full opacity-20 blur-xl group-hover:opacity-40 transition duration-500 animate-pulse"></div>
-              
-              {/* 核心圆形 */}
-              <div className="relative w-48 h-48 bg-black rounded-full border border-slate-800 flex flex-col items-center justify-center shadow-2xl shadow-purple-900/20 active:scale-95 transition-transform">
-                <div className="mb-3 p-4 bg-white/5 rounded-full">
-                  <Upload className="w-8 h-8 text-purple-400" />
+              <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-purple-600 to-sky-500 opacity-25 blur-2xl transition duration-500" />
+              <div className="relative flex h-44 w-44 items-center justify-center rounded-full border border-slate-800 bg-slate-950/70 shadow-[0_0_40px_rgba(15,23,42,0.9)]">
+                <div className="absolute inset-4 rounded-full border-t-2 border-purple-500/80 animate-spin [animation-duration:3200ms]" />
+                <div className="relative flex flex-col items-center gap-3">
+                  <div className="rounded-2xl bg-white/5 p-3">
+                    <Upload className="h-8 w-8 text-purple-400" />
+                  </div>
+                  <span className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-slate-400">
+                    Upload chat
+                  </span>
                 </div>
-                <span className="text-xs font-bold tracking-[0.2em] text-slate-400 group-hover:text-white transition-colors">
-                  UPLOAD
-                </span>
               </div>
             </div>
 
-            {/* 文字引导 */}
-            <div className="text-center space-y-3">
-              <h2 className="text-3xl font-bold text-white tracking-tight">
-                Don't Text Alone.
+            <div className="space-y-3 text-center">
+              <h2 className="text-3xl font-bold tracking-tight">
+                Don&apos;t text alone.
               </h2>
-              <p className="text-slate-400 text-sm leading-relaxed max-w-[280px] mx-auto">
-                Upload a screenshot. Let AI verify the vibe and tell you exactly what to say.
+              <p className="mx-auto max-w-xs text-sm leading-relaxed text-slate-400">
+                Upload a screenshot. RizzIQ analyzes the vibe and gives you
+                three responses that actually fit.
               </p>
             </div>
 
-            {/* 主按钮 (一致性修正) */}
-            <button 
+            <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full py-4 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl font-bold text-lg tracking-wide shadow-lg shadow-purple-900/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 py-4 text-lg font-bold tracking-wide shadow-[0_0_28px_rgba(129,140,248,0.45)] transition active:scale-[0.98]"
             >
-              <Zap size={20} fill="currentColor" />
+              <Zap size={20} className="text-white" />
               SCAN CHAT
             </button>
-            
-            <p className="text-[10px] text-slate-600 uppercase tracking-widest">
-              Powered by Psychology & AI
+
+            <p className="text-[0.6rem] uppercase tracking-[0.28em] text-slate-600">
+              Powered by psychology &amp; AI
             </p>
           </div>
         )}
 
-        {/* 状态 B: 加载中 (Loading) */}
+        {/* Loading state */}
         {loading && (
-          <div className="flex flex-col items-center justify-center space-y-6 animate-in zoom-in duration-300">
-            <Loader2 className="w-16 h-16 text-purple-500 animate-spin" />
+          <div className="flex min-h-[70vh] flex-col items-center justify-center space-y-6">
+            <Loader2 className="h-16 w-16 animate-spin text-purple-400" />
             <div className="space-y-2 text-center">
-              <p className="text-xl font-bold text-white tracking-wide">ANALYZING...</p>
-              <p className="text-xs text-slate-500 font-mono uppercase tracking-widest">
-                Detecting Red Flags
+              <p className="text-xl font-semibold tracking-wide text-white">
+                ANALYZING...
+              </p>
+              <p className="text-xs font-mono uppercase tracking-[0.28em] text-slate-500">
+                reading dynamics &amp; intent
               </p>
             </div>
           </div>
         )}
 
-        {/* 状态 C: 结果展示 (Results) */}
-        {result && (
-          <div className="w-full space-y-6 pb-10 animate-in slide-in-from-bottom-10 duration-500">
-            
-            {/* 分析气泡 */}
-            <div className="bg-slate-900/80 border border-purple-500/20 p-6 rounded-3xl backdrop-blur-xl">
-              <div className="flex items-center gap-2 mb-3 text-purple-400 text-xs font-bold uppercase tracking-widest">
-                <Zap size={14} /> The Vibe Check
-              </div>
-              <p className="text-slate-200 text-sm leading-relaxed">
-                {result.analysis}
-              </p>
-            </div>
+        {/* Results state */}
+        {result && !loading && (
+          <div className="space-y-6 pb-4">
+            {/* analysis card */}
+            {result.analysis && (
+              <section className="rounded-3xl border border-purple-500/30 bg-slate-950/80 p-6 backdrop-blur-xl shadow-[0_0_36px_rgba(168,85,247,0.45)]">
+                <div className="mb-3 flex items-center gap-2 text-[0.65rem] font-bold uppercase tracking-[0.22em] text-purple-300">
+                  <Zap size={14} className="text-purple-300" />
+                  <span>The vibe check</span>
+                </div>
+                <p className="text-sm leading-relaxed text-slate-100">
+                  {result.analysis}
+                </p>
+              </section>
+            )}
 
-            {/* 选项列表 */}
-            <div className="space-y-4">
-              {result.options?.map((opt: any, i: number) => {
-                const styles = [
-                  "border-purple-500/40 shadow-[0_0_30px_-10px_rgba(168,85,247,0.2)]", // Maverick
-                  "border-blue-500/40 shadow-[0_0_30px_-10px_rgba(59,130,246,0.2)]",   // Stoic
-                  "border-emerald-500/40 shadow-[0_0_30px_-10px_rgba(16,185,129,0.2)]" // Mirror
-                ];
-                return (
-                  <div key={i} className={`p-5 rounded-2xl bg-black border ${styles[i%3]}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                        {opt.title}
-                      </span>
-                      <MessageSquare size={14} className="text-slate-600" />
-                    </div>
-                    <p className="text-white font-medium text-base">
-                      "{opt.content}"
-                    </p>
+            {/* options */}
+            <section className="space-y-4">
+              {result.options.map((opt, index) => (
+                <article
+                  key={`${opt.title}-${index}`}
+                  className={`rounded-2xl bg-black/90 p-5 ${getOptionStyle(
+                    opt.title,
+                  )} border`}
+                >
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-[0.7rem] font-bold uppercase tracking-[0.22em] text-slate-400">
+                      {opt.title}
+                    </span>
+                    <MessageSquare
+                      size={16}
+                      className="text-slate-600"
+                    />
                   </div>
-                )
-              })}
-            </div>
+                  <p className="text-base font-medium leading-relaxed text-slate-50">
+                    &quot;{opt.content}&quot;
+                  </p>
+                </article>
+              ))}
 
-            <button 
-              onClick={reset}
-              className="w-full py-4 bg-slate-800 rounded-2xl font-bold text-slate-400 hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
-            >
-              <RefreshCw size={18} />
-              SCAN ANOTHER
-            </button>
+              {result.options.length === 0 && (
+                <p className="text-xs text-slate-400">
+                  No reply options suggested. RizzIQ likely detected a red flag
+                  and advised not to engage.
+                </p>
+              )}
+            </section>
+
+            <div className="pt-4">
+              <button
+                type="button"
+                onClick={handleScanAnother}
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-slate-800 py-3 text-sm font-semibold text-slate-300 transition hover:bg-slate-700"
+              >
+                <RefreshCw size={16} />
+                Scan Another
+              </button>
+            </div>
           </div>
         )}
-
       </div>
 
-      {/* 隐形文件上传控件 (Key Fix) */}
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        className="hidden" 
-        accept="image/*" 
-        onChange={handleImageUpload} 
+      {/* hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleImageUpload}
       />
     </main>
   );
