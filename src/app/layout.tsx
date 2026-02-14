@@ -1,19 +1,24 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Rizziq App",
-  description: "Next.js App Router project with TypeScript and Tailwind CSS"
+  title: "RizzIQ",
+  description:
+    "Upload a chat screenshot. RizzIQ analyzes the vibe and suggests three reply options that actually fit—Maverick, Stoic, or Mirror.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
 };
 
 export default function RootLayout({
-  children
+  children,
 }: {
   children: React.ReactNode;
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }
