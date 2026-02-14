@@ -3,28 +3,18 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 5, 5, 5;
-  --background-end-rgb: 10, 10, 10;
+  --background: 0 0 0;
+  --foreground: 248 250 252;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
   min-height: 100vh;
-  margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #000000;
+  color: rgb(var(--foreground));
 }
 
-/* 强制卡片换行，防止文字串门 */
-.break-words {
-  word-wrap: break-word;
-  word-break: break-word;
-  overflow-wrap: break-word;
+a {
+  color: inherit;
+  text-decoration: none;
 }
+
