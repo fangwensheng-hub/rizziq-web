@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
-// 强制使用 JSON 模式的 System Prompt
+const MAX_IMAGE_BYTES = 14 * 1024 * 1024; // ~10MB raw after base64 (~33% overhead)
+
 const SYSTEM_PROMPT = `
 You are RizzIQ. Analyze the chat image.
 CRITICAL: You MUST return a valid JSON object. Do not return markdown or plain text.
@@ -23,11 +24,42 @@ If you detect a RED FLAG (harassment/scam/safety), return:
 
 export async function POST(req: Request) {
   try {
-    const { image } = await req.json();
-    
-    // 初始化 OpenAI (确保 .env.local 里有 OPENAI_API_KEY)
+    const body = await req.json();
+    const image = body?.image;
+
+    if (!image || typeof image !== "string") {
+      return NextResponse.json(
+        { error: "Missing or invalid image. Please upload a screenshot." },
+        { status: 400 }
+      );
+    }
+    if (!image.startsWith("data:image/")) {
+      return NextResponse.json(
+        { error: "Image must be a valid data URL (data:image/...)." },
+        { status: 400 }
+      );
+    }
+
+    if (image.length > MAX_IMAGE_BYTES) {
+      return NextResponse.json(
+        {
+          error: `Image too large. Maximum size is 10MB. Please use a smaller screenshot.`,
+        },
+        { status: 413 }
+      );
+    }
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "Server config error: OPENAI_API_KEY is not set. Add it to .env.local" },
+        { status: 500 }
+      );
+    }
+
     const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey,
+      timeout: 120000,
     });
 
     const response = await openai.chat.completions.create({
@@ -42,13 +74,12 @@ export async function POST(req: Request) {
           ],
         },
       ],
-      response_format: { type: "json_object" }, // 关键：强制 JSON 模式
+      response_format: { type: "json_object" },
       max_tokens: 500,
     });
 
     const content = response.choices[0].message.content;
     
-    // 尝试解析 JSON
     try {
       const jsonResult = JSON.parse(content || "{}");
       return NextResponse.json(jsonResult);
@@ -57,8 +88,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 });
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : "Unknown server error";
+    const isTimeout = msg.toLowerCase().includes("timed out") || msg.toLowerCase().includes("timeout");
+    const userMessage = isTimeout
+      ? "Request timed out. The AI service is slow or unreachable. Check your network, try a smaller image, or try again later."
+      : msg;
     console.error("API Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: userMessage }, { status: 500 });
   }
 }
