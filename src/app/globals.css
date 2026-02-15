@@ -3,13 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --background: 0 0 0;
+  /* Match logo: solid black with subtle blue undertone for neon pink/cyan harmony */
+  --background: 5 5 10;
   --foreground: 248 250 252;
+  --page-bg: #05050a;
 }
 
 body {
   min-height: 100vh;
-  background-color: #000000;
+  background-color: var(--page-bg);
   color: rgb(var(--foreground));
 }
 
