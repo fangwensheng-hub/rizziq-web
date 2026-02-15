@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import Image from "next/image";
 import { Upload, Zap, Loader2, RefreshCw, MessageSquare } from "lucide-react";
 
 const MAX_FILE_SIZE_MB = 10;
@@ -21,6 +20,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,30 +141,30 @@ export default function Home() {
 
   return (
     <main className="relative flex min-h-screen w-full flex-col overflow-hidden bg-[#000000] text-white font-sans">
+      {/* ambient glows - subtle pink/blue to match logo */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-pink-900/15 blur-[100px]" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-blue-900/10 blur-[90px]" />
 
-      <nav className="absolute top-0 left-0 right-0 z-50 flex h-[3.5rem] items-center justify-between border-b border-white/[0.06] bg-black/95 px-4 backdrop-blur-md sm:px-6">
-        <div className="flex h-10 w-10 shrink-0 items-center sm:h-11 sm:w-11">
-          <Image
-            src="/logo.jpg"
-            alt="RizzIQ"
-            width={44}
-            height={44}
-            className="h-full w-auto object-contain"
-            priority
-          />
+      {/* top nav: logo left, RizzIQ right, heights aligned */}
+      <nav className="absolute top-0 left-0 right-0 z-50 flex h-[3.5rem] items-center justify-between gap-3 border-b border-white/[0.06] bg-black/95 px-4 backdrop-blur-md sm:px-6">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center sm:h-11 sm:w-11">
+          {!logoError && (
+            <img
+              src="/logo.jpg"
+              alt=""
+              className="h-full w-auto max-w-full object-contain"
+              onError={() => setLogoError(true)}
+            />
+          )}
         </div>
-        <h1
-          className="text-xl font-bold leading-[2.5rem] tracking-tight sm:text-2xl sm:leading-[2.75rem]"
-          style={{ height: "2.5rem" }}
-        >
-          <span className="bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
+        <h1 className="shrink-0 text-xl font-bold leading-[2.5rem] tracking-tight sm:text-2xl sm:leading-[2.75rem]">
+          <span className="whitespace-nowrap bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
             RizzIQ
           </span>
         </h1>
       </nav>
 
+      {/* main content */}
       <div className="z-10 mx-auto flex w-full max-w-md flex-1 flex-col px-6 pb-10 pt-24">
         {error && (
           <div className="mb-4 rounded-xl border-2 border-rose-500/60 bg-rose-950/90 px-4 py-4 text-sm font-medium text-rose-100 shadow-[0_0_20px_rgba(244,63,94,0.2)]">
@@ -173,6 +173,7 @@ export default function Home() {
           </div>
         )}
 
+        {/* Idle / upload state */}
         {!loading && !result && (
           <div className="flex min-h-[70vh] flex-col items-center justify-center space-y-10">
             <div
@@ -221,6 +222,7 @@ export default function Home() {
           </div>
         )}
 
+        {/* Loading state */}
         {loading && (
           <div className="flex min-h-[70vh] flex-col items-center justify-center space-y-6">
             <Loader2 className="h-16 w-16 animate-spin text-purple-400" />
@@ -235,8 +237,10 @@ export default function Home() {
           </div>
         )}
 
+        {/* Results state */}
         {result && !loading && (
           <div className="space-y-6 pb-4">
+            {/* analysis card */}
             {result.analysis && (
               <section className="rounded-3xl border border-purple-500/30 bg-slate-950/80 p-6 backdrop-blur-xl shadow-[0_0_36px_rgba(168,85,247,0.45)]">
                 <div className="mb-3 flex items-center gap-2 text-[0.65rem] font-bold uppercase tracking-[0.22em] text-purple-300">
@@ -249,6 +253,7 @@ export default function Home() {
               </section>
             )}
 
+            {/* options */}
             <section className="space-y-4">
               {result.options.map((opt, index) => (
                 <article
@@ -294,6 +299,7 @@ export default function Home() {
         )}
       </div>
 
+      {/* hidden file input */}
       <input
         ref={fileInputRef}
         type="file"
