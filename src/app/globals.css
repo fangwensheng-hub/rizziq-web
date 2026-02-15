@@ -17,3 +17,18 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+@keyframes sink {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(18%) scale(0.94);
+    opacity: 0.35;
+  }
+}
+
+.animate-sink {
+  animation: sink 3.5s ease-in-out infinite alternate;
+}
