@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import Image from "next/image";
 import {
   Upload,
   Zap,
@@ -189,14 +188,13 @@ export default function Home() {
       {/* top nav: logo left, RizzIQ right, heights aligned */}
       <nav className="absolute top-0 left-0 right-0 z-50 flex h-[3.5rem] items-center justify-between gap-3 border-b border-white/[0.06] bg-black/95 px-4 backdrop-blur-md sm:px-6">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center sm:h-12 sm:w-12">
-          <Image
-            src="/logo.jpg"
+          <img
+            src="/logo.jpg?v=2"
             alt="RizzIQ"
             width={48}
             height={48}
             className="h-full w-auto object-contain"
-            unoptimized
-            priority
+            fetchPriority="high"
           />
         </div>
         <h1 className="shrink-0 text-xl font-bold leading-[2.5rem] tracking-tight sm:text-2xl sm:leading-[2.75rem]">
