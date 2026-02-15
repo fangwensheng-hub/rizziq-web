@@ -180,13 +180,13 @@ export default function Home() {
   };
 
   return (
-    <main className="relative flex min-h-screen w-full flex-col overflow-hidden bg-[#000000] text-white font-sans">
-      {/* ambient glows - subtle pink/blue to match logo */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-pink-900/15 blur-[100px]" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-blue-900/10 blur-[90px]" />
+    <main className="relative flex min-h-screen w-full flex-col overflow-hidden bg-[#05050a] text-white font-sans">
+      {/* ambient glows - logo-matched pink/cyan tones */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-pink-500/20 blur-[120px]" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-cyan-500/15 blur-[100px]" />
 
       {/* top nav: logo left, RizzIQ right, heights aligned */}
-      <nav className="absolute top-0 left-0 right-0 z-50 flex h-[3.5rem] items-center justify-between gap-3 border-b border-white/[0.06] bg-black/95 px-4 backdrop-blur-md sm:px-6">
+      <nav className="absolute top-0 left-0 right-0 z-50 flex h-[3.5rem] items-center justify-between gap-3 border-b border-white/[0.06] bg-[#05050a]/95 px-4 backdrop-blur-md sm:px-6">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center sm:h-12 sm:w-12">
           <img
             src="/logo.jpg?v=2"
@@ -274,7 +274,7 @@ export default function Home() {
                   className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 blur-2xl"
                   style={{ backgroundImage: `url(${uploadedImage})` }}
                 />
-                <div className="absolute inset-0 bg-black/50" />
+                <div className="absolute inset-0 bg-[#05050a]/60" />
               </div>
             )}
             <div className="relative z-10 flex flex-col items-center space-y-6">
