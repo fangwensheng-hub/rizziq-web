@@ -2,7 +2,14 @@
 
 import { useState, useRef } from "react";
 import Image from "next/image";
-import { Upload, Zap, Loader2, RefreshCw, MessageSquare } from "lucide-react";
+import {
+  Upload,
+  Zap,
+  Loader2,
+  RefreshCw,
+  Copy,
+  RotateCcw,
+} from "lucide-react";
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -23,6 +30,10 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [logoError, setLogoError] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [lastAnalyzedImage, setLastAnalyzedImage] = useState<string | null>(
+    null,
+  );
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,6 +62,7 @@ export default function Home() {
 
   const analyzeImage = async (base64Image: string) => {
     try {
+      setLastAnalyzedImage(base64Image);
       setUploadedImage(base64Image);
       setLoading(true);
       setResult(null);
@@ -125,8 +137,33 @@ export default function Home() {
     setError(null);
     setLoading(false);
     setUploadedImage(null);
+    setLastAnalyzedImage(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+  };
+
+  const handleTryAgain = () => {
+    if (lastAnalyzedImage) {
+      analyzeImage(lastAnalyzedImage);
+    }
+  };
+
+  const handleCopy = async (content: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch {
+      // fallback for older browsers
+      const ta = document.createElement("textarea");
+      ta.value = content;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
     }
   };
 
@@ -285,14 +322,24 @@ export default function Home() {
                     opt.title,
                   )} border`}
                 >
-                  <div className="mb-2 flex items-center justify-between">
+                  <div className="mb-2 flex items-center justify-between gap-2">
                     <span className="text-[0.7rem] font-bold uppercase tracking-[0.22em] text-slate-400">
                       {opt.title}
                     </span>
-                    <MessageSquare
-                      size={16}
-                      className="text-slate-600"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(opt.content, index)}
+                      className="rounded p-1.5 text-slate-400 transition hover:bg-slate-700/50 hover:text-white"
+                      title="Copy reply"
+                    >
+                      {copiedIndex === index ? (
+                        <span className="text-[0.65rem] font-medium text-emerald-400">
+                          Copied!
+                        </span>
+                      ) : (
+                        <Copy size={16} />
+                      )}
+                    </button>
                   </div>
                   <p className="text-base font-medium leading-relaxed text-slate-50">
                     &quot;{opt.content}&quot;
@@ -308,7 +355,16 @@ export default function Home() {
               )}
             </section>
 
-            <div className="pt-4">
+            <div className="flex flex-col gap-3 pt-4">
+              <button
+                type="button"
+                onClick={handleTryAgain}
+                disabled={!lastAnalyzedImage}
+                className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-600 bg-transparent py-3 text-sm font-semibold text-slate-300 transition hover:border-slate-500 hover:bg-slate-800/50 disabled:opacity-50 disabled:hover:border-slate-600 disabled:hover:bg-transparent"
+              >
+                <RotateCcw size={16} />
+                Try Again
+              </button>
               <button
                 type="button"
                 onClick={handleScanAnother}
