@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Image from "next/image";
 import { Upload, Zap, Loader2, RefreshCw, MessageSquare } from "lucide-react";
 
 const MAX_FILE_SIZE_MB = 10;
@@ -21,6 +22,7 @@ export default function Home() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [logoError, setLogoError] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,6 +51,7 @@ export default function Home() {
 
   const analyzeImage = async (base64Image: string) => {
     try {
+      setUploadedImage(base64Image);
       setLoading(true);
       setResult(null);
       setError(null);
@@ -110,6 +113,7 @@ export default function Home() {
       setError(msg || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
+      setUploadedImage(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -120,6 +124,7 @@ export default function Home() {
     setResult(null);
     setError(null);
     setLoading(false);
+    setUploadedImage(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -147,12 +152,16 @@ export default function Home() {
 
       {/* top nav: logo left, RizzIQ right, heights aligned */}
       <nav className="absolute top-0 left-0 right-0 z-50 flex h-[3.5rem] items-center justify-between gap-3 border-b border-white/[0.06] bg-black/95 px-4 backdrop-blur-md sm:px-6">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center sm:h-11 sm:w-11">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center sm:h-12 sm:w-12">
           {!logoError && (
-            <img
+            <Image
               src="/logo.jpg"
               alt=""
-              className="h-full w-auto max-w-full object-contain"
+              width={48}
+              height={48}
+              className="h-full w-auto object-contain"
+              unoptimized
+              priority
               onError={() => setLogoError(true)}
             />
           )}
@@ -222,17 +231,31 @@ export default function Home() {
           </div>
         )}
 
-        {/* Loading state */}
+        {/* Loading state: blurred sinking background + loader */}
         {loading && (
-          <div className="flex min-h-[70vh] flex-col items-center justify-center space-y-6">
-            <Loader2 className="h-16 w-16 animate-spin text-purple-400" />
-            <div className="space-y-2 text-center">
-              <p className="text-xl font-semibold tracking-wide text-white">
-                ANALYZING...
-              </p>
-              <p className="text-xs font-mono uppercase tracking-[0.28em] text-slate-500">
-                reading dynamics &amp; intent
-              </p>
+          <div className="relative flex min-h-[70vh] flex-col items-center justify-center space-y-6">
+            {uploadedImage && (
+              <div
+                className="pointer-events-none fixed inset-0 z-0 animate-sink"
+                aria-hidden
+              >
+                <div
+                  className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 blur-2xl"
+                  style={{ backgroundImage: `url(${uploadedImage})` }}
+                />
+                <div className="absolute inset-0 bg-black/50" />
+              </div>
+            )}
+            <div className="relative z-10 flex flex-col items-center space-y-6">
+              <Loader2 className="h-16 w-16 animate-spin text-purple-400" />
+              <div className="space-y-2 text-center">
+                <p className="text-xl font-semibold tracking-wide text-white">
+                  ANALYZING...
+                </p>
+                <p className="text-xs font-mono uppercase tracking-[0.28em] text-slate-500">
+                  reading dynamics &amp; intent
+                </p>
+              </div>
             </div>
           </div>
         )}
