@@ -28,7 +28,6 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [logoError, setLogoError] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [lastAnalyzedImage, setLastAnalyzedImage] = useState<string | null>(
     null,
@@ -190,18 +189,15 @@ export default function Home() {
       {/* top nav: logo left, RizzIQ right, heights aligned */}
       <nav className="absolute top-0 left-0 right-0 z-50 flex h-[3.5rem] items-center justify-between gap-3 border-b border-white/[0.06] bg-black/95 px-4 backdrop-blur-md sm:px-6">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center sm:h-12 sm:w-12">
-          {!logoError && (
-            <Image
-              src="/logo.jpg"
-              alt=""
-              width={48}
-              height={48}
-              className="h-full w-auto object-contain"
-              unoptimized
-              priority
-              onError={() => setLogoError(true)}
-            />
-          )}
+          <Image
+            src="/logo.jpg"
+            alt="RizzIQ"
+            width={48}
+            height={48}
+            className="h-full w-auto object-contain"
+            unoptimized
+            priority
+          />
         </div>
         <h1 className="shrink-0 text-xl font-bold leading-[2.5rem] tracking-tight sm:text-2xl sm:leading-[2.75rem]">
           <span className="whitespace-nowrap bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
