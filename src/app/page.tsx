@@ -190,7 +190,7 @@ export default function Home() {
         <div className="flex h-11 w-11 shrink-0 items-center justify-center sm:h-12 sm:w-12">
           <img
             src="/logo.jpg?v=2"
-            alt="RizzIQ"
+            alt=""
             width={48}
             height={48}
             className="h-full w-auto object-contain"
@@ -383,4 +383,3 @@ export default function Home() {
     </main>
   );
 }
-
