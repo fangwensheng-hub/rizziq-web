@@ -200,14 +200,12 @@ export default function Home() {
             priority
           />
         </div>
-        <div className="flex min-w-0 shrink items-center justify-end gap-1 sm:gap-2">
-          <h1 className="truncate text-xl font-bold leading-[2.5rem] tracking-tight sm:text-2xl sm:leading-[2.75rem]">
-            <span className="whitespace-nowrap bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
-              RizzIQ
-            </span>
-          </h1>
-          <AddToHomeScreen />
-        </div>
+        <h1 className="shrink-0 text-xl font-bold leading-[2.5rem] tracking-tight sm:text-2xl sm:leading-[2.75rem]">
+          <span className="whitespace-nowrap bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
+            RizzIQ
+          </span>
+        </h1>
+        <AddToHomeScreen />
       </nav>
 
       {/* main content */}
