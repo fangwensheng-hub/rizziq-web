@@ -235,7 +235,7 @@ export default function Home() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-pink-950/6 blur-[120px]" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-blue-950/5 blur-[100px]" />
 
-      {/* top nav: logo left, RizzIQ right, heights aligned */}
+      {/* top nav: logo left, RizzIQ + three-dot menu right */}
       <nav className="absolute top-0 left-0 right-0 z-50 flex h-[3.5rem] items-center justify-between gap-3 border-b border-white/[0.06] bg-black/90 px-4 backdrop-blur-md sm:px-6">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center sm:h-12 sm:w-12">
           <Image
@@ -248,25 +248,25 @@ export default function Home() {
             priority
           />
         </div>
-        <div className="flex shrink-0 items-center gap-3">
-          <h1 className="text-xl font-bold leading-[2.5rem] tracking-tight sm:text-2xl sm:leading-[2.75rem]">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-3">
+          <h1 className="truncate text-xl font-bold leading-[2.5rem] tracking-tight sm:text-2xl sm:leading-[2.75rem]">
             <span className="whitespace-nowrap bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
               RizzIQ
             </span>
           </h1>
           <div className="relative shrink-0" ref={menuRef}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMenuOpen(!menuOpen);
-                }}
-                className="rounded-full p-2 text-white/90 transition hover:bg-white/10"
-                title="More"
-                aria-label="More"
-              >
-                <MoreVertical size={22} />
-              </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen(!menuOpen);
+              }}
+              className="flex shrink-0 items-center justify-center rounded-full p-2 text-white transition hover:bg-white/10"
+              title="More"
+              aria-label="More"
+            >
+              <MoreVertical size={24} strokeWidth={2} className="shrink-0" />
+            </button>
               {menuOpen && (
                 <div className="absolute right-0 top-full z-[70] mt-1 min-w-[180px] rounded-xl border border-slate-700 bg-slate-900 py-1 shadow-xl">
                   <button
@@ -285,7 +285,7 @@ export default function Home() {
                   </button>
                 </div>
               )}
-            </div>
+          </div>
         </div>
         {showInstallHint && (
           <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 p-4 sm:items-center">
