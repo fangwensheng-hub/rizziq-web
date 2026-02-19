@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import RegisterSW from "./RegisterSW";
 
 export const metadata: Metadata = {
   title: "RizzIQ",
@@ -30,7 +31,10 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/logo.jpg" sizes="180x180" />
         <meta name="apple-mobile-web-app-title" content="RizzIQ" />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {children}
+        <RegisterSW />
+      </body>
     </html>
   );
 }
