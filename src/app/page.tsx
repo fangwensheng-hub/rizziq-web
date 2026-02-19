@@ -9,6 +9,7 @@ import {
   Copy,
   RotateCcw,
 } from "lucide-react";
+import AddToHomeScreen from "./AddToHomeScreen";
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -197,11 +198,14 @@ export default function Home() {
             fetchPriority="high"
           />
         </div>
-        <h1 className="shrink-0 text-xl font-bold leading-[2.5rem] tracking-tight sm:text-2xl sm:leading-[2.75rem]">
-          <span className="whitespace-nowrap bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
-            RizzIQ
-          </span>
-        </h1>
+        <div className="flex shrink-0 items-center gap-1">
+          <h1 className="text-xl font-bold leading-[2.5rem] tracking-tight sm:text-2xl sm:leading-[2.75rem]">
+            <span className="whitespace-nowrap bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
+              RizzIQ
+            </span>
+          </h1>
+          <AddToHomeScreen />
+        </div>
       </nav>
 
       {/* main content */}
