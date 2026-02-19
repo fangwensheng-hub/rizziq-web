@@ -62,21 +62,21 @@ export default function Home() {
   }, [menuOpen]);
 
   const handleAddToHome = () => {
-    setMenuOpen(false);
     if (deferredPrompt) {
       deferredPrompt.prompt();
-    } else if (navigator.share) {
-      navigator.share({ url: window.location.href, title: "RizzIQ", text: "RizzIQ" }).catch(() => {});
+    } else if (typeof navigator !== "undefined" && navigator.share) {
+      void navigator.share({ url: window.location.href, title: "RizzIQ", text: "RizzIQ" });
     }
+    setMenuOpen(false);
   };
 
   const handleInstall = () => {
-    setMenuOpen(false);
     if (deferredPrompt) {
       deferredPrompt.prompt();
-    } else if (navigator.share) {
-      navigator.share({ url: window.location.href, title: "RizzIQ", text: "RizzIQ" }).catch(() => {});
+    } else if (typeof navigator !== "undefined" && navigator.share) {
+      void navigator.share({ url: window.location.href, title: "RizzIQ", text: "RizzIQ" });
     }
+    setMenuOpen(false);
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
