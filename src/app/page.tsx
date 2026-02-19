@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import {
   Upload,
@@ -9,8 +9,9 @@ import {
   RefreshCw,
   Copy,
   RotateCcw,
+  MoreVertical,
+  X,
 } from "lucide-react";
-import AddToHomeScreenMenu from "./AddToHomeScreenMenu";
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -34,7 +35,59 @@ export default function Home() {
     null,
   );
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showInstallHint, setShowInstallHint] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<{
+    prompt: () => Promise<void>;
+  } | null>(null);
+  const [installHintType, setInstallHintType] = useState<"ios" | "android" | null>(null);
+  const [hideMenuInStandalone, setHideMenuInStandalone] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as { standalone?: boolean }).standalone === true;
+    setHideMenuInStandalone(standalone);
+    const handler = (e: Event) => {
+      e.preventDefault();
+      const ev = e as unknown as { prompt: () => Promise<void> };
+      setDeferredPrompt({ prompt: () => ev.prompt() });
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    if (menuOpen) document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [menuOpen]);
+
+  const handleAddToHome = () => {
+    setMenuOpen(false);
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+    } else {
+      setInstallHintType(/iPad|iPhone|iPod/.test(navigator.userAgent) ? "ios" : "android");
+      setShowInstallHint(true);
+    }
+  };
+
+  const handleInstall = () => {
+    setMenuOpen(false);
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+    } else {
+      setInstallHintType("android");
+      setShowInstallHint(true);
+    }
+  };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -206,8 +259,82 @@ export default function Home() {
               RizzIQ
             </span>
           </h1>
-          <AddToHomeScreenMenu />
+          {!hideMenuInStandalone && (
+            <div className="relative shrink-0" ref={menuRef}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen(!menuOpen);
+                }}
+                className="rounded-full p-2 text-white/90 transition hover:bg-white/10"
+                title="More"
+                aria-label="More"
+              >
+                <MoreVertical size={22} />
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 top-full z-[70] mt-1 min-w-[180px] rounded-xl border border-slate-700 bg-slate-900 py-1 shadow-xl">
+                  <button
+                    type="button"
+                    onClick={handleAddToHome}
+                    className="w-full px-4 py-2.5 text-left text-sm text-slate-200 transition hover:bg-slate-800"
+                  >
+                    Add to Home screen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleInstall}
+                    className="w-full px-4 py-2.5 text-left text-sm text-slate-200 transition hover:bg-slate-800"
+                  >
+                    Install app
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
+        {showInstallHint && (
+          <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 p-4 sm:items-center">
+            <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-xl">
+              <div className="mb-4 flex items-center justify-between">
+                <span className="font-semibold text-white">Add to Home Screen</span>
+                <button
+                  type="button"
+                  onClick={() => { setShowInstallHint(false); setInstallHintType(null); }}
+                  className="rounded p-1 text-slate-400 hover:bg-slate-700"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              {installHintType === "ios" ? (
+                <div className="mb-4 space-y-3 text-sm text-slate-300">
+                  <p className="font-medium text-white">In Safari:</p>
+                  <ol className="list-decimal list-inside space-y-2 pl-1">
+                    <li>Tap the <strong>Share</strong> icon at the bottom</li>
+                    <li>Scroll and tap <strong>Add to Home Screen</strong></li>
+                    <li>Tap <strong>Add</strong></li>
+                  </ol>
+                </div>
+              ) : (
+                <div className="mb-4 space-y-3 text-sm text-slate-300">
+                  <p className="font-medium text-white">In Chrome:</p>
+                  <ol className="list-decimal list-inside space-y-2 pl-1">
+                    <li>Tap <strong>⋮</strong> (three dots) in the browser bar</li>
+                    <li>Tap <strong>Add to Home screen</strong> or <strong>Install app</strong></li>
+                  </ol>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => { setShowInstallHint(false); setInstallHintType(null); }}
+                className="w-full rounded-xl bg-slate-700 py-3 font-semibold text-slate-200"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* main content */}
