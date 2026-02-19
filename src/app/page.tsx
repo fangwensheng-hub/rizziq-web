@@ -41,15 +41,10 @@ export default function Home() {
     prompt: () => Promise<void>;
   } | null>(null);
   const [installHintType, setInstallHintType] = useState<"ios" | "android" | null>(null);
-  const [hideMenuInStandalone, setHideMenuInStandalone] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as { standalone?: boolean }).standalone === true;
-    setHideMenuInStandalone(standalone);
     const handler = (e: Event) => {
       e.preventDefault();
       const ev = e as unknown as { prompt: () => Promise<void> };
@@ -253,14 +248,13 @@ export default function Home() {
             priority
           />
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-3">
           <h1 className="text-xl font-bold leading-[2.5rem] tracking-tight sm:text-2xl sm:leading-[2.75rem]">
             <span className="whitespace-nowrap bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
               RizzIQ
             </span>
           </h1>
-          {!hideMenuInStandalone && (
-            <div className="relative shrink-0" ref={menuRef}>
+          <div className="relative shrink-0" ref={menuRef}>
               <button
                 type="button"
                 onClick={(e) => {
@@ -292,7 +286,6 @@ export default function Home() {
                 </div>
               )}
             </div>
-          )}
         </div>
         {showInstallHint && (
           <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 p-4 sm:items-center">
