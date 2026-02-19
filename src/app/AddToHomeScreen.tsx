@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Share2, X } from "lucide-react";
 
 export default function AddToHomeScreen() {
+  const [mounted, setMounted] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<{
     prompt: () => Promise<void>;
@@ -12,22 +13,22 @@ export default function AddToHomeScreen() {
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const ua = navigator.userAgent;
     setIsIOS(/iPad|iPhone|iPod/.test(ua) && !(window as never)["MSStream"]);
-    setIsStandalone(
+    const standalone =
       window.matchMedia("(display-mode: standalone)").matches ||
-        (window.navigator as { standalone?: boolean }).standalone === true
-    );
+      (window.navigator as { standalone?: boolean }).standalone === true;
+    setIsStandalone(standalone);
 
     const handler = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt({ prompt: () => (e as { prompt: () => Promise<void> }).prompt() });
+      const ev = e as unknown as { prompt: () => Promise<void> };
+      setDeferredPrompt({ prompt: () => ev.prompt() });
     };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
-
-  if (isStandalone) return null;
 
   const handleInstall = async () => {
     if (deferredPrompt) {
@@ -37,15 +38,18 @@ export default function AddToHomeScreen() {
     setShowHint(false);
   };
 
+  if (!mounted || isStandalone) return null;
+
   return (
     <>
       <button
         type="button"
         onClick={() => setShowHint(true)}
-        className="rounded-full p-2 text-slate-400 transition hover:bg-slate-800/50 hover:text-white"
+        className="shrink-0 rounded-full p-2 text-white/80 transition hover:bg-white/10 hover:text-white"
         title="Add to Home Screen"
+        aria-label="Add to Home Screen"
       >
-        <Share2 size={20} />
+        <Share2 size={22} strokeWidth={2} />
       </button>
 
       {showHint && (
