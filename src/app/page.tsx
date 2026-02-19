@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import {
   Upload,
@@ -287,48 +288,51 @@ export default function Home() {
               )}
           </div>
         </div>
-        {showInstallHint && (
-          <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 p-4 sm:items-center">
-            <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-xl">
-              <div className="mb-4 flex items-center justify-between">
-                <span className="font-semibold text-white">Add to Home Screen</span>
-                <button
-                  type="button"
-                  onClick={() => { setShowInstallHint(false); setInstallHintType(null); }}
-                  className="rounded p-1 text-slate-400 hover:bg-slate-700"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-              {installHintType === "ios" ? (
-                <div className="mb-4 space-y-3 text-sm text-slate-300">
-                  <p className="font-medium text-white">In Safari:</p>
-                  <ol className="list-decimal list-inside space-y-2 pl-1">
-                    <li>Tap the <strong>Share</strong> icon at the bottom</li>
-                    <li>Scroll and tap <strong>Add to Home Screen</strong></li>
-                    <li>Tap <strong>Add</strong></li>
-                  </ol>
-                </div>
-              ) : (
-                <div className="mb-4 space-y-3 text-sm text-slate-300">
-                  <p className="font-medium text-white">In Chrome:</p>
-                  <ol className="list-decimal list-inside space-y-2 pl-1">
-                    <li>Tap <strong>⋮</strong> (three dots) in the browser bar</li>
-                    <li>Tap <strong>Add to Home screen</strong> or <strong>Install app</strong></li>
-                  </ol>
-                </div>
-              )}
+      </nav>
+
+      {/* Install hint modal - rendered via portal to body to avoid clipping by main overflow */}
+      {showInstallHint && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4">
+          <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-sm flex-col overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-xl">
+            <div className="mb-4 flex shrink-0 items-center justify-between">
+              <span className="font-semibold text-white">Add to Home Screen</span>
               <button
                 type="button"
                 onClick={() => { setShowInstallHint(false); setInstallHintType(null); }}
-                className="w-full rounded-xl bg-slate-700 py-3 font-semibold text-slate-200"
+                className="rounded p-1 text-slate-400 hover:bg-slate-700"
               >
-                Got it
+                <X size={20} />
               </button>
             </div>
+            {installHintType === "ios" ? (
+              <div className="mb-4 space-y-3 text-sm text-slate-300">
+                <p className="font-medium text-white">In Safari:</p>
+                <ol className="list-decimal list-inside space-y-2 pl-1">
+                  <li>Tap the <strong>Share</strong> icon at the bottom</li>
+                  <li>Scroll and tap <strong>Add to Home Screen</strong></li>
+                  <li>Tap <strong>Add</strong></li>
+                </ol>
+              </div>
+            ) : (
+              <div className="mb-4 space-y-3 text-sm text-slate-300">
+                <p className="font-medium text-white">In Chrome:</p>
+                <ol className="list-decimal list-inside space-y-2 pl-1">
+                  <li>Tap <strong>⋮</strong> (three dots) in the browser bar</li>
+                  <li>Tap <strong>Add to Home screen</strong> or <strong>Install app</strong></li>
+                </ol>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => { setShowInstallHint(false); setInstallHintType(null); }}
+              className="mt-auto w-full shrink-0 rounded-xl bg-slate-700 py-3 font-semibold text-slate-200"
+            >
+              Got it
+            </button>
           </div>
-        )}
-      </nav>
+        </div>,
+        document.body
+      )}
 
       {/* main content */}
       <div className="z-10 mx-auto flex w-full max-w-md flex-1 flex-col px-6 pb-10 pt-24">
