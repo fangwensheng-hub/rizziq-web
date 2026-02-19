@@ -43,7 +43,7 @@ export default function AddToHomeScreen() {
       <button
         type="button"
         onClick={() => setShowHint(true)}
-        className="shrink-0 rounded-full p-2 text-white/80 transition hover:bg-white/10 hover:text-white"
+        className="fixed top-3 right-4 z-[60] shrink-0 rounded-full bg-white/10 p-2.5 text-white transition hover:bg-white/20"
         title="Add to Home Screen"
         aria-label="Add to Home Screen"
       >
