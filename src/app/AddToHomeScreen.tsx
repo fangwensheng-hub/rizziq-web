@@ -4,22 +4,20 @@ import { useState, useEffect } from "react";
 import { Share2, X } from "lucide-react";
 
 export default function AddToHomeScreen() {
-  const [mounted, setMounted] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<{
     prompt: () => Promise<void>;
   } | null>(null);
   const [isIOS, setIsIOS] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
+  const [hideInStandalone, setHideInStandalone] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const ua = navigator.userAgent;
     setIsIOS(/iPad|iPhone|iPod/.test(ua) && !(window as never)["MSStream"]);
     const standalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as { standalone?: boolean }).standalone === true;
-    setIsStandalone(standalone);
+    setHideInStandalone(standalone);
 
     const handler = (e: Event) => {
       e.preventDefault();
@@ -38,7 +36,7 @@ export default function AddToHomeScreen() {
     setShowHint(false);
   };
 
-  if (!mounted || isStandalone) return null;
+  if (hideInStandalone) return null;
 
   return (
     <>
