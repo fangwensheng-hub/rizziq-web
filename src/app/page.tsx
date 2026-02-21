@@ -269,14 +269,14 @@ export default function Home() {
                     onClick={handleAddToHome}
                     className="w-full px-4 py-2.5 text-left text-sm text-slate-200 transition hover:bg-slate-800"
                   >
-                    Add to Home screen
+                    Add To Home Screen
                   </button>
                   <button
                     type="button"
                     onClick={handleInstall}
                     className="w-full px-4 py-2.5 text-left text-sm text-slate-200 transition hover:bg-slate-800"
                   >
-                    Install app
+                    Install App
                   </button>
                 </div>
               )}
